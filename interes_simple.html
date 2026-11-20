@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculadora de interés simple</title>
+<style>
+  :root {
+    --bg: #f4f6fb; --card: #ffffff; --text: #1d2433; --muted: #5d6679;
+    --line: #d9deea; --accent: #2457d6; --accent-text: #ffffff;
+    --ok: #0f7b4a; --err: #b3261e; --soft: #eaf0ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1b2030; --text: #e8ecf5; --muted: #9aa4ba;
+      --line: #2e3550; --accent: #6e97ff; --accent-text: #0d1330;
+      --ok: #55d99b; --err: #ff8a80; --soft: #232b45;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 16px; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin: 8px 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 16px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; margin-bottom: 14px;
+  }
+  .formula {
+    text-align: center; font-size: 1.25rem; font-family: Georgia, serif;
+    background: var(--soft); border-radius: 10px; padding: 10px; margin-bottom: 14px;
+  }
+  .formula small { display: block; font-size: .8rem; color: var(--muted); font-family: system-ui, sans-serif; }
+  label { display: block; font-weight: 600; font-size: .9rem; margin: 12px 0 4px; }
+  .hint { font-weight: 400; color: var(--muted); }
+  input, select {
+    width: 100%; padding: 10px 12px; font-size: 1rem; color: var(--text);
+    background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input:disabled { background: var(--soft); font-style: italic; }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .row > .narrow { flex: 0 0 38%; }
+  .actions { display: flex; gap: 10px; margin-top: 18px; }
+  button {
+    flex: 1; padding: 12px; font-size: 1rem; font-weight: 600; border-radius: 8px;
+    border: 1px solid var(--accent); cursor: pointer;
+  }
+  .primary { background: var(--accent); color: var(--accent-text); }
+  .ghost { background: transparent; color: var(--accent); }
+  #error { color: var(--err); font-weight: 600; margin-top: 12px; min-height: 1.2em; }
+  .big { font-size: 1.6rem; font-weight: 700; color: var(--ok); margin: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+  .grid div { background: var(--soft); border-radius: 10px; padding: 10px; }
+  .grid span { display: block; font-size: .8rem; color: var(--muted); }
+  .grid b { font-size: 1.1rem; }
+  .steps { font-family: ui-monospace, Consolas, monospace; font-size: .9rem; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: 8px; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  h2 { font-size: 1.05rem; margin: 0 0 6px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Calculadora de interés simple</h1>
+  <p class="sub">El interés se calcula siempre sobre el capital inicial, sin capitalizar.</p>
+
+  <section class="card">
+    <div class="formula">
+      I = C · r · t &nbsp;&nbsp;|&nbsp;&nbsp; M = C + I
+      <small>I: interés · C: capital · r: tasa (decimal) · t: tiempo en años · M: monto final</small>
+    </div>
+
+    <label for="mode">¿Qué quieres calcular?</label>
+    <select id="mode">
+      <option value="I">Interés (I)</option>
+      <option value="C">Capital (C)</option>
+      <option value="r">Tasa de interés (r)</option>
+      <option value="t">Tiempo (t)</option>
+    </select>
+
+    <label for="C">Capital inicial (C) <span class="hint">— dinero invertido o prestado</span></label>
+    <input id="C" type="text" inputmode="decimal" placeholder="Ej: 1000000" autocomplete="off">
+
+    <label for="r">Tasa de interés anual (r) <span class="hint">— en %</span></label>
+    <input id="r" type="text" inputmode="decimal" placeholder="Ej: 12" autocomplete="off">
+
+    <label for="t">Tiempo (t)</label>
+    <div class="row">
+      <input id="t" type="text" inputmode="decimal" placeholder="Ej: 2" autocomplete="off">
+      <select id="unit" class="narrow" aria-label="Unidad de tiempo">
+        <option value="1">años</option>
+        <option value="12">meses</option>
+        <option value="365">días</option>
+      </select>
+    </div>
+
+    <label for="I">Interés (I)</label>
+    <input id="I" type="text" inputmode="decimal" placeholder="Ej: 240000" autocomplete="off">
+
+    <div class="actions">
+      <button class="primary" id="calc" type="button">Calcular</button>
+      <button class="ghost" id="clear" type="button">Limpiar</button>
+    </div>
+    <div id="error" role="alert"></div>
+  </section>
+
+  <section class="card" id="result" hidden>
+    <p class="sub" id="resLabel"></p>
+    <p class="big" id="resValue"></p>
+    <div class="grid">
+      <div><span>Capital (C)</span><b id="oC"></b></div>
+      <div><span>Interés (I)</span><b id="oI"></b></div>
+      <div><span>Tasa anual (r)</span><b id="oR"></b></div>
+      <div><span>Monto final (M = C + I)</span><b id="oM"></b></div>
+    </div>
+    <h2>Procedimiento</h2>
+    <p class="steps" id="steps"></p>
+    <div id="tableWrap">
+      <h2>Interés acumulado por periodo</h2>
+      <table>
+        <thead><tr><th id="thPeriod">Periodo</th><th>Interés acumulado</th><th>Monto</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ---------- Lógica pura (sin DOM) ---------- */
+/*PURE*/
+// tYears = tiempo en años; r en decimal (12 % = 0.12)
+function solve(mode, v) {
+  var C = v.C, r = v.r, t = v.t, I = v.I;
+  if (mode === 'I') I = C * r * t;
+  else if (mode === 'C') C = I / (r * t);
+  else if (mode === 'r') r = I / (C * t);
+  else if (mode === 't') t = I / (C * r);
+  return { C: C, r: r, t: t, I: I, M: C + I };
+}
+/*ENDPURE*/
+
+/* ---------- Interfaz ---------- */
+var $ = function (id) { return document.getElementById(id); };
+var FIELDS = ['C', 'r', 't', 'I'];
+var UNIT_NAMES = { '1': 'año', '12': 'mes', '365': 'día' };
+var UNIT_PLURAL = { '1': 'años', '12': 'meses', '365': 'días' };
+
+var money = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 2 });
+var num = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 4 });
+
+function parse(s) {
+  s = String(s).trim().replace(/\s/g, '');
+  if (s === '') return NaN;
+  // acepta "1.234,56" (formato latino) y "1234.56"
+  if (s.indexOf(',') !== -1) s = s.replace(/\./g, '').replace(',', '.');
+  return Number(s);
+}
+
+function updateMode() {
+  var mode = $('mode').value;
+  FIELDS.forEach(function (f) {
+    var el = $(f);
+    el.disabled = (f === mode);
+    if (f === mode) { el.value = ''; el.placeholder = 'se calcula'; }
+  });
+  $('unit').disabled = false;
+  $('error').textContent = '';
+  $('result').hidden = true;
+}
+
+function calculate() {
+  var mode = $('mode').value;
+  var div = Number($('unit').value);
+  var err = $('error');
+  err.textContent = '';
+
+  var raw = {};
+  for (var i = 0; i < FIELDS.length; i++) {
+    var f = FIELDS[i];
+    if (f === mode) continue;
+    var val = parse($(f).value);
+    if (isNaN(val)) { err.textContent = 'Completa el campo "' + label(f) + '" con un número válido.'; return; }
+    if (val <= 0) { err.textContent = '"' + label(f) + '" debe ser mayor que cero.'; return; }
+    raw[f] = val;
+  }
+
+  var v = {
+    C: raw.C,
+    r: raw.r !== undefined ? raw.r / 100 : undefined,
+    t: raw.t !== undefined ? raw.t / div : undefined,
+    I: raw.I
+  };
+  var res = solve(mode, v);
+  if (!isFinite(res.C) || !isFinite(res.r) || !isFinite(res.t) || !isFinite(res.I)) {
+    err.textContent = 'No se pudo calcular con esos datos.'; return;
+  }
+  show(mode, res, div);
+}
+
+function label(f) {
+  return { C: 'Capital', r: 'Tasa', t: 'Tiempo', I: 'Interés' }[f];
+}
+
+function show(mode, res, div) {
+  var tUnits = res.t * div;                 // tiempo en la unidad elegida
+  var uName = tUnits === 1 ? UNIT_NAMES[String(div)] : UNIT_PLURAL[String(div)];
+  var rPct = res.r * 100;
+
+  var labels = { I: 'Interés ganado', C: 'Capital inicial necesario', r: 'Tasa de interés anual', t: 'Tiempo necesario' };
+  var values = {
+    I: money.format(res.I), C: money.format(res.C),
+    r: num.format(rPct) + ' % anual', t: num.format(tUnits) + ' ' + uName
+  };
+  $('resLabel').textContent = labels[mode];
+  $('resValue').textContent = values[mode];
+  $('oC').textContent = money.format(res.C);
+  $('oI').textContent = money.format(res.I);
+  $('oR').textContent = num.format(rPct) + ' %';
+  $('oM').textContent = money.format(res.M);
+
+  var tTxt = num.format(res.t) + ' años' + (div !== 1 ? ' (' + num.format(tUnits) + ' ' + UNIT_PLURAL[String(div)] + ')' : '');
+  var steps = {
+    I: 'I = C · r · t = ' + num.format(res.C) + ' · ' + num.format(res.r) + ' · ' + num.format(res.t) + ' = ' + num.format(res.I),
+    C: 'C = I / (r · t) = ' + num.format(res.I) + ' / (' + num.format(res.r) + ' · ' + num.format(res.t) + ') = ' + num.format(res.C),
+    r: 'r = I / (C · t) = ' + num.format(res.I) + ' / (' + num.format(res.C) + ' · ' + num.format(res.t) + ') = ' + num.format(res.r) + ' = ' + num.format(rPct) + ' %',
+    t: 't = I / (C · r) = ' + num.format(res.I) + ' / (' + num.format(res.C) + ' · ' + num.format(res.r) + ') = ' + num.format(res.t) + ' años'
+  };
+  $('steps').textContent = steps[mode] + '   ·   t = ' + tTxt + '   ·   M = C + I = ' + num.format(res.M);
+
+  // Tabla de interés acumulado por periodo (máx. 24 filas)
+  var tbody = $('tbody');
+  tbody.innerHTML = '';
+  var n = Math.min(Math.ceil(tUnits - 1e-9), 24);
+  $('thPeriod').textContent = UNIT_NAMES[String(div)].charAt(0).toUpperCase() + UNIT_NAMES[String(div)].slice(1);
+  for (var k = 1; k <= n; k++) {
+    var tk = Math.min(k, tUnits) / div;
+    var ik = res.C * res.r * tk;
+    var tr = document.createElement('tr');
+    [String(k), money.format(ik), money.format(res.C + ik)].forEach(function (txt) {
+      var td = document.createElement('td'); td.textContent = txt; tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  }
+  $('tableWrap').hidden = n < 1;
+  $('result').hidden = false;
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function clearAll() {
+  FIELDS.forEach(function (f) { $(f).value = ''; });
+  $('unit').value = '1';
+  updateMode();
+}
+
+$('mode').addEventListener('change', updateMode);
+$('calc').addEventListener('click', calculate);
+$('clear').addEventListener('click', clearAll);
+document.addEventListener('keydown', function (e) { if (e.key === 'Enter') calculate(); });
+updateMode();
+</script>
+</body>
+</html>
